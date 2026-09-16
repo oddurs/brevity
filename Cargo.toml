@@ -1,0 +1,37 @@
+[package]
+name = "brevity"
+version = "0.1.0"
+edition = "2021"
+description = "Summarize whatever is on the clipboard, chime, and put the summary back."
+authors = ["Oddur Sigurdsson"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/oddurs/brevity"
+homepage = "https://github.com/oddurs/brevity"
+readme = "README.md"
+keywords = ["clipboard", "summarize", "llm", "cli", "hotkey"]
+categories = ["command-line-utilities", "text-processing"]
+# `.env.example` is compiled in via include_str!, and cargo drops dotfiles
+# unless they are named explicitly.
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    ".env.example",
+    "install.sh",
+    "rustfmt.toml",
+    "hotkeys/**/*",
+]
+
+[dependencies]
+serde_json = "1"
+ureq = { version = "3", features = ["json"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest something brevity should do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        brevity tries to stay small: one binary, two dependencies, one job.
+        Proposals that keep it that way have the best chance.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that brevity makes hard today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: A flag, an environment variable, a provider, a different default.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - A new provider
+        - A new flag or config option
+        - Platform support
+        - Behaviour change
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: |
+        Many things are already possible — `BREVITY_BASE_URL` for any
+        OpenAI-shaped endpoint, `BREVITY_PROMPT_<NAME>` for custom prompts,
+        `BREVITY_SOUND_CMD` for a custom player.

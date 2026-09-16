@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to a PR cancels the run still going for the old one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --all-features
+      - run: cargo build --release
+
+      # An end-to-end run against the bundled fake provider: no API key, no
+      # network, no money. --stdin/--no-replace keeps it off the clipboard,
+      # which a headless runner does not have.
+      - name: smoke test
+        shell: bash
+        env:
+          BREVITY_ENV_FILE: /dev/null
+          BREVITY_SOUND: "false"
+          BREVITY_NOTIFY: "off"
+        run: |
+          set -euo pipefail
+          BIN=target/release/brevity
+
+          "$BIN" --version
+          "$BIN" --help > /dev/null
+          BREVITY_PROVIDER=ollama BREVITY_MODEL=x "$BIN" --config
+
+          python3 scripts/mock-provider.py --reply "CI summary." &
+          for _ in $(seq 1 50); do
+            curl -sf -o /dev/null -X POST http://127.0.0.1:8799/chat/completions -d '{}' && break
+            sleep 0.2
+          done
+
+          export BREVITY_PROVIDER=openai-compat
+          export BREVITY_BASE_URL=http://127.0.0.1:8799/v1
+          export BREVITY_MODEL=mock
+
+          got=$(echo "a long piece of text" | "$BIN" --stdin --no-replace)
+          [ "$got" = "CI summary." ] || { echo "expected 'CI summary.', got '$got'"; exit 1; }
+
+          # A dead endpoint must fail loudly rather than exit 0 with nothing.
+          if echo hi | BREVITY_BASE_URL=http://127.0.0.1:9/v1 BREVITY_TIMEOUT_SECS=3 \
+               "$BIN" --stdin --no-replace; then
+            echo "expected a failure exit code from an unreachable endpoint"; exit 1
+          fi
+
+          kill %1 || true
+          echo "smoke test passed"
+
+  package:
+    name: cargo package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo package --allow-dirty

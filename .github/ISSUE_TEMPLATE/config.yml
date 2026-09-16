@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/oddurs/brevity/discussions
+    about: Anything that isn't a specific bug or a specific feature request.
+  - name: Security vulnerability
+    url: https://github.com/oddurs/brevity/security/advisories/new
+    about: Report privately. Please do not open a public issue.

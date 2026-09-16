@@ -1,0 +1,3 @@
+# ~/.config/skhd/skhdrc
+ctrl + alt + cmd - b : $HOME/.local/bin/brevity
+ctrl + alt + cmd + shift - b : $HOME/.local/bin/brevity --restore
