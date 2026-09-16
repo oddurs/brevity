@@ -30,7 +30,7 @@ jobs:
           - { os: ubuntu-latest, target: x86_64-unknown-linux-musl }
           # aarch64 Linux needs a cross linker; add it with `cross` if you want it.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
