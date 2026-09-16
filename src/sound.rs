@@ -186,8 +186,10 @@ mod tests {
     fn volume_scales_the_signal_and_zero_is_silent() {
         let peak = |v: f32| {
             render_wav(notes(&Chime::Done), v)[44..]
-                .chunks_exact(2)
-                .map(|c| i16::from_le_bytes([c[0], c[1]]).unsigned_abs())
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|c| i16::from_le_bytes(*c).unsigned_abs())
                 .max()
                 .unwrap()
         };
@@ -201,8 +203,10 @@ mod tests {
             for which in [Chime::Done, Chime::Error] {
                 let wav = render_wav(notes(&which), v);
                 let clipped = wav[44..]
-                    .chunks_exact(2)
-                    .filter(|c| i16::from_le_bytes([c[0], c[1]]).unsigned_abs() >= i16::MAX as u16)
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .filter(|c| i16::from_le_bytes(**c).unsigned_abs() >= i16::MAX as u16)
                     .count();
                 assert_eq!(clipped, 0, "volume {v} clips");
             }
