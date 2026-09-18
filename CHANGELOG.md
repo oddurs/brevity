@@ -10,6 +10,22 @@ Configuration keys are part of the public interface: renaming or removing a
 
 ## [Unreleased]
 
+### Fixed
+
+- Non-ASCII text from a hotkey. `pbpaste` and `pbcopy` take their encoding from
+  the locale, and a hotkey daemon runs under launchd with no locale set, so they
+  fell back to Mac OS Roman. Reading failed outright with `clipboard does not
+  hold UTF-8 text` on anything containing an accent, a typographic dash or a
+  smart quote, and — less visibly — writing mangled every non-ASCII character in
+  the summary, so `café —` was pasted back as `caf‚àö¬© ‚Äû`. brevity now forces
+  a UTF-8 locale on both tools. Running from a terminal masked this entirely,
+  because interactive shells set `LANG`.
+- A clipboard that cannot be decoded now degrades to a lossy read with a warning
+  instead of refusing to run, and a BOM or CRLF line endings are stripped before
+  the text reaches the model.
+- The empty-clipboard message now mentions that images and files have nothing to
+  summarize, which is the usual reason for it.
+
 ### Added
 
 - `brevity --install-hotkey [KEY]` and `--uninstall-hotkey`. Binding a key was
