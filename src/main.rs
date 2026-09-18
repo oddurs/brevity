@@ -147,7 +147,11 @@ fn run() -> i32 {
 
     let text = input.trim();
     if text.is_empty() {
-        return fail(&cfg.ui, "the clipboard has no text in it");
+        return fail(
+            &cfg.ui,
+            "the clipboard holds no text - an image, a file or an empty clipboard \
+             has nothing to summarize",
+        );
     }
     let chars = text.chars().count();
     if chars < cfg.min_input_chars {

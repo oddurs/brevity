@@ -41,6 +41,25 @@ Also check the provider itself: setting `OPENROUTER_API_KEY` while
 `BREVITY_PROVIDER` is still `anthropic` produces exactly this error, naming the
 key brevity wanted rather than the one you set.
 
+## It works in a terminal but fails from the hotkey
+
+Almost always an environment difference, and on macOS there is one specific
+cause worth knowing: `pbpaste` and `pbcopy` pick their character encoding from
+the locale, and a hotkey daemon runs under launchd, which sets no locale at all.
+They then fall back to Mac OS Roman — reading turns `é` into a byte that is not
+valid UTF-8 and drops emoji entirely, and writing mangles every non-ASCII
+character in the summary.
+
+brevity forces a UTF-8 locale on those tools as of the current version, so if
+you see `clipboard does not hold UTF-8 text` from a hotkey, you are on an older
+build. Reproduce it deliberately with:
+
+```sh
+env -u LANG -u LC_ALL -u LC_CTYPE brevity --no-replace
+```
+
+If that fails while plain `brevity --no-replace` succeeds, rebuild and reinstall.
+
 ## The summary is empty, or a sentence long
 
 The model spent its token budget before writing an answer. This is the standard
