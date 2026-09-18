@@ -2,6 +2,7 @@
 
 mod clipboard;
 mod config;
+mod hotkey;
 mod provider;
 mod sound;
 
@@ -18,17 +19,21 @@ USAGE:
     brevity [OPTIONS]
 
 OPTIONS:
-    -s, --style <NAME>   Use the prompt defined by BREVITY_PROMPT_<NAME>
-    -p, --print          Also write the summary to stdout
-    -n, --no-replace     Leave the clipboard alone (implies --print)
-        --stdin          Summarize stdin instead of the clipboard
-        --restore        Put the last replaced clipboard contents back
-        --chime [error]  Play the success (or failure) sound and exit
-        --config         Show the resolved configuration (keys redacted)
-        --init           Create the env file if it does not exist
-        --edit           Open the env file in $EDITOR
-    -h, --help           Show this help
-    -V, --version        Show the version
+    -s, --style <NAME>        Use the prompt defined by BREVITY_PROMPT_<NAME>
+    -p, --print               Also write the summary to stdout
+    -n, --no-replace          Leave the clipboard alone (implies --print)
+        --stdin               Summarize stdin instead of the clipboard
+        --restore             Put the last replaced clipboard contents back
+
+    --install-hotkey [KEY]    Bind a global hotkey, default ctrl+alt+cmd+b
+    --uninstall-hotkey        Remove the bindings --install-hotkey wrote
+
+        --chime [error]       Play the success (or failure) sound and exit
+        --config              Show the resolved configuration (keys redacted)
+        --init                Create the env file if it does not exist
+        --edit                Open the env file in $EDITOR
+    -h, --help                Show this help
+    -V, --version             Show the version
 
 CONFIG:
     ";
@@ -62,6 +67,29 @@ fn run() -> i32 {
             "--init" => return init_env_file(),
             "--edit" => return edit_env_file(),
             "--restore" => return restore(),
+            "--install-hotkey" => {
+                // An optional chord may follow; anything starting with `-` is not one.
+                let spec = it.clone().next().filter(|a| !a.starts_with('-')).cloned();
+                if spec.is_some() {
+                    it.next();
+                }
+                return match hotkey::install(spec.as_deref()) {
+                    Ok(()) => 0,
+                    Err(e) => {
+                        eprintln!("brevity: {e}");
+                        1
+                    }
+                };
+            }
+            "--uninstall-hotkey" => {
+                return match hotkey::uninstall() {
+                    Ok(()) => 0,
+                    Err(e) => {
+                        eprintln!("brevity: {e}");
+                        1
+                    }
+                };
+            }
             "--chime" => {
                 let ui = Ui::load(&Env::load());
                 let which = match it.next().map(|s| s.as_str()) {
