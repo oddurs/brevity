@@ -47,8 +47,8 @@ cat <<EOF
 installed: $BIN/brevity
 
 next:
-  1. brevity --edit          add an API key (or point it at a local model)
-  2. brevity --config        check what it resolved
-  3. copy some text, then run: brevity
-  4. bind it to a key - see $SRC_DIR/hotkeys/
+  1. brevity --edit             add an API key (or point it at a local model)
+  2. brevity --config           check what it resolved
+  3. copy some text, then run:  brevity
+  4. brevity --install-hotkey   bind it to a key
 EOF

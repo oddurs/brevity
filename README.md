@@ -27,8 +27,26 @@ Linux also needs a clipboard tool — `wl-clipboard` on Wayland, `xclip` on X11.
 `wl-copy` fork a helper that keeps serving it, which is why brevity shells out
 to them instead of linking a clipboard library.)
 
-Then bind it to a key: see [`hotkeys/`](hotkeys/) for Shortcuts.app, Raycast,
-Hammerspoon, skhd, GNOME, KDE, sway, Hyprland and i3.
+Then bind it to a key:
+
+```sh
+brevity --install-hotkey            # ⌃⌥⌘B, and ⌃⌥⇧⌘B to undo
+brevity --install-hotkey ctrl+alt+s # or pick your own chord
+```
+
+That writes the binding and starts the daemon that listens for it — skhd on
+macOS (installed via Homebrew if absent), and your own compositor's config on
+Linux, where GNOME, sway, Hyprland and i3 are configured directly. It only
+rewrites the lines between its own markers, so it will not disturb bindings you
+already have, and `brevity --uninstall-hotkey` removes them again.
+
+**macOS asks for one thing back:** skhd needs Accessibility permission before it
+can see key presses, which only you can grant. The installer opens the right
+settings pane and tells you what to switch on. Grant it, then
+`skhd --restart-service`.
+
+Prefer to do it yourself, or on KDE? [`hotkeys/`](hotkeys/) has the syntax for
+Shortcuts.app, Raycast, Hammerspoon, skhd, GNOME, KDE, sway, Hyprland and i3.
 
 ## Configure
 
@@ -159,6 +177,8 @@ brevity --print         also print the summary
 brevity --no-replace    leave the clipboard alone (implies --print)
 brevity --stdin         summarize stdin instead:  git log | brevity --stdin -p
 brevity --restore       put the replaced text back
+brevity --install-hotkey [KEY]   bind a global hotkey
+brevity --uninstall-hotkey       remove the bindings it wrote
 brevity --chime         preview the sound (add `error` for the failure tone)
 brevity --config        show the resolved configuration
 brevity --edit          open the env file

@@ -1,7 +1,17 @@
 # Binding brevity to a key
 
-Every recipe below runs the same thing: the `brevity` binary, with no arguments,
-with no terminal. Use the absolute path (`~/.local/bin/brevity`) - hotkey daemons
+Most people want:
+
+```sh
+brevity --install-hotkey
+```
+
+which does all of this for you on macOS, GNOME, sway, Hyprland and i3. The
+recipes below are for KDE, for the tools it does not automate, and for anyone
+who would rather write the config themselves.
+
+Every recipe runs the same thing: the `brevity` binary, with no arguments, with
+no terminal. Use the absolute path (`~/.local/bin/brevity`) - hotkey daemons
 rarely inherit your shell's `PATH`.
 
 ## macOS

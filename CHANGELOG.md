@@ -12,6 +12,14 @@ Configuration keys are part of the public interface: renaming or removing a
 
 ### Added
 
+- `brevity --install-hotkey [KEY]` and `--uninstall-hotkey`. Binding a key was
+  the only part of setup that meant clicking through a settings UI. It now
+  installs skhd through Homebrew on macOS, and writes GNOME, sway, Hyprland or
+  i3 configuration directly on Linux. Edits are confined to a marked block, so
+  re-running is idempotent and existing bindings are never disturbed. macOS
+  still requires an Accessibility grant, which no program can give itself; the
+  installer opens the pane and says so.
+
 - `TROUBLESHOOTING.md`, covering the failure modes that are hard to diagnose
   behind a hotkey: a key on the wrong line, empty summaries from reasoning
   models, silent hotkeys, missing audio players, and recovering a credential

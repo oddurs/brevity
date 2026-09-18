@@ -82,6 +82,24 @@ BREVITY_PROMPT="In no more than {max_words} words, state only what this says. No
 
 ## Nothing happens when I press the hotkey
 
+If you used `brevity --install-hotkey` on macOS, the answer is almost certainly
+that skhd has not been granted Accessibility. It fails closed and silently:
+
+```sh
+pgrep skhd || tail -1 /tmp/skhd_$USER.err.log
+```
+
+`skhd: must be run with accessibility access! abort..` means exactly what it
+says. Turn skhd on under System Settings > Privacy & Security > Accessibility,
+then `skhd --restart-service`. No program can grant this to itself, which is why
+the installer can only open the pane for you.
+
+Check the binding itself with:
+
+```sh
+grep -A4 'brevity' ~/.config/skhd/skhdrc
+```
+
 Run the same command in a terminal first. If that works, it is the hotkey
 environment, and almost always one of:
 
