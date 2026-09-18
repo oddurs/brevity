@@ -10,6 +10,23 @@ Configuration keys are part of the public interface: renaming or removing a
 
 ## [Unreleased]
 
+### Added
+
+- `TROUBLESHOOTING.md`, covering the failure modes that are hard to diagnose
+  behind a hotkey: a key on the wrong line, empty summaries from reasoning
+  models, silent hotkeys, missing audio players, and recovering a credential
+  that was on the clipboard.
+
+### Changed
+
+- README: a "Choosing a model" section with measured latencies, and a worked
+  OpenRouter example. Summarizing rewards speed and brevity over reasoning, and
+  reasoning models spend `max_tokens` on thinking before they answer — both are
+  now documented rather than discovered.
+- `.env.example`: notes that `BREVITY_MAX_WORDS` asks rather than enforces, that
+  `BREVITY_MAX_TOKENS` is the real ceiling and the wrong length knob, and that
+  `BREVITY_EFFORT` is Anthropic-only.
+
 ## [0.1.0] - 2026-09-16
 
 First release.

@@ -58,6 +58,68 @@ provider, so proxies and gateways work too.
 
 `brevity --config` prints what it actually resolved, with the key redacted.
 
+### Worked example: OpenRouter
+
+One key reaches every model, which makes it the easiest place to try several
+before settling. Three lines:
+
+```ini
+BREVITY_PROVIDER=openrouter
+OPENROUTER_API_KEY=sk-or-v1-...
+BREVITY_MODEL=google/gemini-3.1-flash-lite
+```
+
+The model is a full OpenRouter slug — `vendor/model`, not the vendor's own
+model id. `curl -s https://openrouter.ai/api/v1/models | jq -r '.data[].id'`
+lists every one, no key required.
+
+## Choosing a model
+
+Summarizing is undemanding work, so the differences that matter here are speed
+and whether the model respects a length budget — not reasoning ability. A
+measured comparison, same 60-line input, through OpenRouter:
+
+| Model | Time | Words returned |
+|---|---|---|
+| `google/gemini-3.1-flash-lite` | 2.5s | 93 |
+| `google/gemini-2.5-flash` | 3.1s | 97 |
+| `anthropic/claude-haiku-4.5` | 5.2s | 139 |
+| `anthropic/claude-opus-5` | 7.6s | 230 |
+| `google/gemini-3.8-flash` | 10.9s | 14 |
+
+Two things worth taking from that.
+
+**Faster models are not worse at this.** The 2.5s summary and the 7.6s one were
+both accurate; the slow one was simply longer. When the task is compression, a
+small model that stays inside the budget beats a large one that overruns it.
+
+**Beware thinking models.** `gemini-3.8-flash` reasons before answering, and on
+an OpenAI-shaped endpoint those reasoning tokens are spent from `max_tokens`.
+It burned almost the entire 1024-token budget thinking and had room for 14
+words of actual summary. If you want a reasoning model, raise
+`BREVITY_MAX_TOKENS` to several thousand — otherwise pick one that answers
+directly.
+
+Numbers are one run on one input on one day; re-measure rather than trust them:
+
+```sh
+time (pbpaste | brevity --stdin --no-replace)
+```
+
+### Length
+
+`BREVITY_MAX_WORDS` is a request in the prompt, not an enforced cap — a model
+can and will overrun it on dense input. `BREVITY_MAX_TOKENS` is the real
+ceiling, and hitting it truncates mid-sentence, so leave it well clear of the
+length you actually want. To make summaries shorter, lower `BREVITY_MAX_WORDS`
+or write a blunter prompt; don't squeeze `BREVITY_MAX_TOKENS`.
+
+### Effort (Anthropic only)
+
+`BREVITY_EFFORT` maps to Anthropic's `output_config.effort` and defaults to
+`low`, which is right for summarizing. It is silently unused by every other
+provider, and models older than Claude 4.6 reject it — unset it there.
+
 ## Change the prompt
 
 The built-in prompt asks for the summary and nothing else, under
@@ -124,6 +186,12 @@ brevity --edit          open the env file
 ## Exit codes
 
 `0` success · `1` failure (sound + notification) · `2` bad arguments.
+
+## Troubleshooting
+
+Nothing appears on screen when brevity works, and not much appears when it
+doesn't — see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for the failure modes
+worth knowing, starting with `brevity --config`.
 
 ## Contributing
 
