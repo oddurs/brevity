@@ -199,6 +199,11 @@ brevity --edit          open the env file
   `--allow-secrets` or set `BREVITY_ALLOW_SECRETS=true` when you mean it.
 - **Failure is audible.** A falling two-tone plus a desktop notification, since
   there is no terminal to read. `BREVITY_NOTIFY=off|errors|always`.
+- **Transient failures are retried.** A rate limit or a 5xx gets up to
+  `BREVITY_RETRIES` more attempts with backoff, honouring the server's
+  `Retry-After` when it sends one. Behind a hotkey a single 429 would otherwise
+  just mean nothing happened. Timeouts are not retried — that request already
+  spent the whole budget, and doubling a silent wait is worse than failing.
 - **It refuses rather than truncates.** Input above `BREVITY_MAX_INPUT_CHARS`
   (200k) is never silently cut down — raise the limit if you mean it.
 - **The chime is generated, not shipped.** A short rising blip, synthesized into
