@@ -10,6 +10,15 @@ Configuration keys are part of the public interface: renaming or removing a
 
 ## [Unreleased]
 
+### Added
+
+- Credentials on the clipboard are refused instead of summarized. API keys,
+  tokens, private keys and JWTs are recognized by shape and stop the run before
+  anything is sent. The mistake this prevents — copy a key, forget it is there,
+  press the hotkey — cannot be undone afterwards: the text reaches the provider
+  and the history file at once. `--allow-secrets` or `BREVITY_ALLOW_SECRETS=true`
+  overrides it.
+
 ### Fixed
 
 - Non-ASCII text from a hotkey. `pbpaste` and `pbcopy` take their encoding from

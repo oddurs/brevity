@@ -49,6 +49,7 @@ pub struct Config {
 
     pub ui: Ui,
     pub history: bool,
+    pub allow_secrets: bool,
 }
 
 /// Feedback settings. Loaded on their own so a misconfigured provider can still
@@ -414,6 +415,7 @@ groq, deepseek, mistral, together, ollama, lmstudio, llamacpp, vllm, openai-comp
             min_input_chars: env.num("BREVITY_MIN_INPUT_CHARS", 0usize),
             max_input_chars: env.num("BREVITY_MAX_INPUT_CHARS", 200_000usize),
             ui: Ui::load(env),
+            allow_secrets: env.flag("BREVITY_ALLOW_SECRETS", false),
             history: env.flag("BREVITY_HISTORY", true),
         })
     }

@@ -176,6 +176,7 @@ brevity --style NAME    use a named prompt
 brevity --print         also print the summary
 brevity --no-replace    leave the clipboard alone (implies --print)
 brevity --stdin         summarize stdin instead:  git log | brevity --stdin -p
+brevity --allow-secrets summarize even if it looks like a credential
 brevity --restore       put the replaced text back
 brevity --install-hotkey [KEY]   bind a global hotkey
 brevity --uninstall-hotkey       remove the bindings it wrote
@@ -191,6 +192,11 @@ brevity --edit          open the env file
   `brevity --restore` brings it back. Turn it off with `BREVITY_HISTORY=false`.
 - **The clipboard is only touched on success.** Any failure leaves it exactly as
   it was.
+- **Credentials are refused, not summarized.** If the clipboard looks like an API
+  key, token, private key or JWT, brevity stops before sending anything. You copy
+  a key, you forget, you hit the hotkey — and it would otherwise be in your
+  provider's logs and your history file, neither of which you can undo. Pass
+  `--allow-secrets` or set `BREVITY_ALLOW_SECRETS=true` when you mean it.
 - **Failure is audible.** A falling two-tone plus a desktop notification, since
   there is no terminal to read. `BREVITY_NOTIFY=off|errors|always`.
 - **It refuses rather than truncates.** Input above `BREVITY_MAX_INPUT_CHARS`

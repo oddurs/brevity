@@ -25,6 +25,14 @@ an unpublished document, it has left your machine and is subject to that
 provider's retention and training policy. Point `BREVITY_PROVIDER` at Ollama,
 LM Studio, llama.cpp or vLLM to keep everything on the machine.
 
+**Credentials on the clipboard are refused by default.** brevity checks for API
+key, token, private key and JWT shapes before it sends anything, because the
+mistake is easy to make and impossible to take back: copy a key, forget, press
+the hotkey, and it is in your provider's logs and your history file. The check is
+deliberately high-precision rather than exhaustive — it will not catch a password
+or an unrecognized token format, so it is a safety net, not a guarantee.
+`BREVITY_ALLOW_SECRETS=true` or `--allow-secrets` disables it.
+
 **brevity talks to exactly one host** — the one `BREVITY_BASE_URL` resolves to, or
 the configured provider's default. It contacts nothing else: no telemetry, no
 update check, no analytics.
