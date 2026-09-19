@@ -1,5 +1,7 @@
 //! One request, one summary. Three wire shapes cover every supported backend.
 
+use std::time::Duration;
+
 use serde_json::{json, Value};
 
 use crate::config::{Config, MaxTokensField, Provider};
@@ -48,12 +50,71 @@ fn agent(cfg: &Config) -> ureq::Agent {
         .into()
 }
 
+/// A failed attempt, and whether trying again could plausibly help.
+struct Attempt {
+    message: String,
+    retryable: bool,
+    retry_after: Option<Duration>,
+}
+
+/// Rate limits and gateway hiccups are transient and common; behind a hotkey a
+/// single 429 otherwise means nothing happens and you get an error chime.
+/// Timeouts are deliberately *not* retried - the request already spent the full
+/// budget, and doubling a silent wait is worse than failing.
 fn post(
     cfg: &Config,
     url: &str,
     headers: &[(&str, String)],
     body: &Value,
 ) -> Result<Value, String> {
+    let mut attempt = 0u32;
+    loop {
+        match post_once(cfg, url, headers, body) {
+            Ok(v) => return Ok(v),
+            Err(e) => {
+                if !e.retryable || attempt >= cfg.retries {
+                    return Err(e.message);
+                }
+                let wait = e.retry_after.unwrap_or_else(|| backoff(attempt));
+                eprintln!(
+                    "brevity: {} - retrying in {:.1}s ({}/{})",
+                    e.message,
+                    wait.as_secs_f32(),
+                    attempt + 1,
+                    cfg.retries
+                );
+                std::thread::sleep(wait);
+                attempt += 1;
+            }
+        }
+    }
+}
+
+fn backoff(attempt: u32) -> Duration {
+    Duration::from_millis(500u64 << attempt.min(3))
+}
+
+/// 408 and 429 are the server asking us to wait; the 5xx family is its problem,
+/// not ours. Everything else - a bad model name, a rejected key - fails
+/// identically however many times we ask.
+fn is_retryable_status(status: u16) -> bool {
+    matches!(status, 408 | 429 | 500 | 502 | 503 | 504 | 529)
+}
+
+fn retry_after_of(value: Option<&str>) -> Option<Duration> {
+    let secs: f64 = value?.trim().parse().ok()?;
+    if !(0.0..=60.0).contains(&secs) {
+        return None;
+    }
+    Some(Duration::from_secs_f64(secs))
+}
+
+fn post_once(
+    cfg: &Config,
+    url: &str,
+    headers: &[(&str, String)],
+    body: &Value,
+) -> Result<Value, Attempt> {
     let mut req = agent(cfg).post(url).header("content-type", "application/json");
     for (k, v) in headers {
         req = req.header(*k, v.as_str());
@@ -62,23 +123,45 @@ fn post(
         req = req.header(k.as_str(), v.as_str());
     }
 
-    let mut resp = req.send_json(body).map_err(|e| net_error(cfg, e))?;
+    let mut resp = req.send_json(body).map_err(|e| {
+        let timed_out = matches!(e, ureq::Error::Timeout(_));
+        Attempt {
+            message: net_error(cfg, e),
+            // A connection that failed fast is worth another try; one that ate
+            // the whole timeout budget is not.
+            retryable: !timed_out,
+            retry_after: None,
+        }
+    })?;
+
     let status = resp.status().as_u16();
-    let text = resp
-        .body_mut()
-        .read_to_string()
-        .map_err(|e| format!("could not read the response: {e}"))?;
+    let retry_after =
+        retry_after_of(resp.headers().get("retry-after").and_then(|v| v.to_str().ok()));
+
+    let text = resp.body_mut().read_to_string().map_err(|e| Attempt {
+        message: format!("could not read the response: {e}"),
+        retryable: true,
+        retry_after: None,
+    })?;
 
     let parsed: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
     if !(200..300).contains(&status) {
-        return Err(format!(
-            "{} returned HTTP {status}: {}",
-            cfg.provider_name,
-            api_error(&parsed, &text)
-        ));
+        return Err(Attempt {
+            message: format!(
+                "{} returned HTTP {status}: {}",
+                cfg.provider_name,
+                api_error(&parsed, &text)
+            ),
+            retryable: is_retryable_status(status),
+            retry_after,
+        });
     }
     if parsed.is_null() {
-        return Err(format!("{} returned a non-JSON response: {}", cfg.provider_name, clip(&text)));
+        return Err(Attempt {
+            message: format!("{} returned a non-JSON response: {}", cfg.provider_name, clip(&text)),
+            retryable: false,
+            retry_after: None,
+        });
     }
     Ok(parsed)
 }
@@ -307,6 +390,42 @@ mod tests {
     fn a_summary_that_is_itself_about_code_keeps_its_inner_fence() {
         let out = tidy("```\nRun `cargo build`:\n\n```sh\ncargo build\n```\n```");
         assert!(out.contains("cargo build"), "{out}");
+    }
+
+    #[test]
+    fn only_transient_statuses_are_retried() {
+        for s in [408, 429, 500, 502, 503, 504, 529] {
+            assert!(super::is_retryable_status(s), "{s} should be retried");
+        }
+        // A bad key, a bad model, a malformed request: asking again cannot help.
+        for s in [400, 401, 403, 404, 413, 422, 501] {
+            assert!(!super::is_retryable_status(s), "{s} should not be retried");
+        }
+    }
+
+    #[test]
+    fn backoff_grows_and_then_stops_growing() {
+        let d: Vec<u128> = (0..6).map(|i| super::backoff(i).as_millis()).collect();
+        assert_eq!(d[0], 500);
+        assert_eq!(d[1], 1000);
+        assert!(d.windows(2).all(|w| w[1] >= w[0]), "backoff went backwards: {d:?}");
+        assert!(d.iter().all(|&ms| ms <= 4000), "backoff unbounded: {d:?}");
+    }
+
+    #[test]
+    fn a_servers_retry_after_is_honoured_when_sane() {
+        assert_eq!(super::retry_after_of(Some("2")).unwrap().as_secs(), 2);
+        assert_eq!(super::retry_after_of(Some(" 1.5 ")).unwrap().as_millis(), 1500);
+    }
+
+    #[test]
+    fn an_absurd_retry_after_is_ignored_rather_than_obeyed() {
+        // Some gateways send an HTTP-date or a very long wait; neither is worth
+        // blocking a hotkey on.
+        assert!(super::retry_after_of(Some("3600")).is_none());
+        assert!(super::retry_after_of(Some("Wed, 21 Oct 2026 07:28:00 GMT")).is_none());
+        assert!(super::retry_after_of(Some("-5")).is_none());
+        assert!(super::retry_after_of(None).is_none());
     }
 
     #[test]

@@ -30,7 +30,9 @@ BREVITY_MODEL=mock \
 
 `--echo` prints the request headers and body, which is the fastest way to check
 you are sending what a provider expects. `--status 429`, `--delay 10` and
-`--reply "..."` cover the unhappy paths.
+`--reply "..."` cover the unhappy paths, and `--fail-times 2 --retry-after 3`
+makes the server fail a few times before recovering, which is how the retry
+logic is tested.
 
 ## The workflow
 

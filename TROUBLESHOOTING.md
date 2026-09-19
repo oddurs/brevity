@@ -89,6 +89,19 @@ time (pbpaste | brevity --stdin --no-replace)
 If a local model is the slow part, it is loading from disk on each call; keep it
 resident (`OLLAMA_KEEP_ALIVE=30m` for Ollama).
 
+## It fails only sometimes, usually when I use it a lot
+
+Rate limiting. brevity retries a 429 or a 5xx twice with backoff before giving
+up, so a visible failure means the provider stayed unhappy across three
+attempts. From a terminal you will see the retries:
+
+```
+brevity: ... returned HTTP 429 - retrying in 0.5s (1/2)
+```
+
+Raise `BREVITY_RETRIES`, or move to a model with a more generous limit. Setting
+it to 0 disables retrying entirely.
+
 ## The summary is longer than BREVITY_MAX_WORDS
 
 Expected. The word budget is an instruction in the prompt, not a cap brevity

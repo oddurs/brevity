@@ -12,6 +12,15 @@ Configuration keys are part of the public interface: renaming or removing a
 
 ### Added
 
+- Transient API failures are retried. A 429 or 5xx gets `BREVITY_RETRIES`
+  further attempts (default 2) with exponential backoff, or the server's own
+  `Retry-After` when it sends a sane one. Behind a hotkey a single rate limit
+  previously meant nothing happened at all. Timeouts are deliberately excluded:
+  the request already spent its whole budget, and doubling a silent wait is
+  worse than failing. Client errors are never retried.
+
+### Added
+
 - Credentials on the clipboard are refused instead of summarized. API keys,
   tokens, private keys and JWTs are recognized by shape and stop the run before
   anything is sent. The mistake this prevents — copy a key, forget it is there,

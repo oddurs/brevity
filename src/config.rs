@@ -38,6 +38,7 @@ pub struct Config {
     pub temperature: Option<f64>,
     pub effort: Option<String>,
     pub timeout: Duration,
+    pub retries: u32,
 
     pub system_prompt: String,
     pub prompt_template: String,
@@ -408,6 +409,7 @@ groq, deepseek, mistral, together, ollama, lmstudio, llamacpp, vllm, openai-comp
                 }
             }),
             timeout: Duration::from_secs(env.num("BREVITY_TIMEOUT_SECS", 90u64)),
+            retries: env.num("BREVITY_RETRIES", 2u32).min(10),
             system_prompt,
             prompt_template,
             max_words: env.num("BREVITY_MAX_WORDS", 120usize),
