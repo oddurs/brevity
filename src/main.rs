@@ -4,6 +4,7 @@ mod clipboard;
 mod config;
 mod hotkey;
 mod provider;
+mod secrets;
 mod sound;
 
 use std::io::Read;
@@ -23,6 +24,7 @@ OPTIONS:
     -p, --print               Also write the summary to stdout
     -n, --no-replace          Leave the clipboard alone (implies --print)
         --stdin               Summarize stdin instead of the clipboard
+        --allow-secrets       Summarize even if the text looks like a credential
         --restore             Put the last replaced clipboard contents back
 
     --install-hotkey [KEY]    Bind a global hotkey, default ctrl+alt+cmd+b
@@ -52,6 +54,7 @@ fn run() -> i32 {
     let mut print = false;
     let mut replace = true;
     let mut from_stdin = false;
+    let mut allow_secrets = false;
 
     let mut it = args.iter();
     while let Some(arg) = it.next() {
@@ -113,6 +116,7 @@ fn run() -> i32 {
                 print = true;
             }
             "--stdin" | "-" => from_stdin = true,
+            "--allow-secrets" => allow_secrets = true,
             other => {
                 if let Some(v) = other.strip_prefix("--style=") {
                     style = Some(v.to_string());
@@ -171,6 +175,21 @@ fn run() -> i32 {
                 cfg.max_input_chars
             ),
         );
+    }
+
+    // Nothing here can be undone once the request leaves: the provider has the
+    // text and the history file has a copy. Check before, not after.
+    if !(allow_secrets || cfg.allow_secrets) {
+        if let Some(kind) = secrets::detect(text) {
+            return fail(
+                &cfg.ui,
+                &format!(
+                    "that looks like {kind}, so it was not sent to {}. \
+                     Use --allow-secrets, or set BREVITY_ALLOW_SECRETS=true, if you meant it.",
+                    cfg.provider_name
+                ),
+            );
+        }
     }
 
     let summary = match provider::summarize(&cfg, text) {
